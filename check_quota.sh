@@ -27,7 +27,7 @@
 
 
 to_human_size(){
-    # numfmt counts in bytes while APPARENLY our file commands count in KiB by default??
+    # numfmt counts in bytes while APPARENTLY our file commands count in KiB by default??
     if which numfmt 1>/dev/null 2>/dev/null; then
         numfmt --to=iec-i --suffix='B' --from-unit=1024 "$1"
     else # just make it to MiB and call it a day I don't care
@@ -65,10 +65,9 @@ if [ -n "$*" ]; then
             "$(to_human_size "$Q_USED")" "$(echo "$Q_USED*100/$Q_LIMIT"|bc)"\
             "$(to_human_size "$Q_LIMIT")" "$extra_message"
     fi
-else 
+else
     echo "$0: Could not get quota information for current user." >&2
     echo ''
 fi
 
 unset to_human_size Q_USED Q_LIMIT Q_GRACE _f_pfx extra_message _date_fstring
-

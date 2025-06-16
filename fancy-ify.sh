@@ -27,7 +27,8 @@
 
 
 # if $TERM not set, bypass this enitirely
-[ -n "$TERM" ] 	&& { 
+[ -n "$TERM" ] || return 0
+
 LOGO="$(cat <<EOF
 █     █▝▀▀▀▀▙▐▌    ▐▌
 █     █      ▐▌    ▐▌
@@ -43,7 +44,7 @@ EOF
 
 # when connecting via x2g, tput'd implode and somehow take the x2g session with it :(
 # so no `tput cols` for now (until I find a way to safely $TERM to appease it) :((
-# UPDATE: for whatever reason $TERM was not transfered over to the sub shells, causing errors
+# UPDATE: for whatever reason $TERM was not transferred over to the sub shells, causing errors
 if [ "LANG" != "C" ] && [ "${COLUMNS:-"$(TERM="$TERM" tput cols)"}" -gt 28 ]; then
     echo "╭$HBAR╮"
     echo "$LOGO" | while IFS='' read -r line; do
@@ -56,7 +57,7 @@ else
     printf '%s\n  \033[1m\033[38;5;208m%s\033[0m\n%s\n'\
         "=======" "VGU" "======="
 fi
-printf '\033[2m(something broke again? come yell @ 18874)\033[0m\n'
+printf '\033[2m(something broke? come yell at \033[4meda.helpdesk@vgu.edu.vn\033[24m)\033[0m\n'
 
 printf '\nYou have connected to: \033[4m%s\033[0m\n\n' "$HOSTNAME"
 
@@ -69,7 +70,8 @@ Endfie- whoops wrong greeting.
 Today is $(date)... In case you wanna know, $USER.
 Hello $USER.
 $USER, how's that report going?
-$USER! The IC is designing!!!
+$USER! The IC!! It-it's designing!!! RUN
+How do you skibidii today fellow rizzlers?
 Goodluck with the circuitry $USER.
 Is today Friday?
 Take it easy, $USER.
@@ -81,19 +83,19 @@ make_ps1_fancy(){
     # modified from https://www.cyberciti.biz/tips/howto-linux-unix-bash-shell-setup-prompt.html
     # normal
     # 🗁 (folder unicode char) might cause issues, remove if broken
-    PS1='[\[\033[1m\]\u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\]]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
+    # PS1='[\[\033[1m\]\u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\]]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
+    PS1='[\[\033[1m\] \u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\] ]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
 }
 
 
 # Bells and whistles, comment out if server slows down
 if [ "$LANG" != "C" ]; then
-    # to remove formating, comment this line out
+    # to remove formatting, comment this line out
     make_ps1_fancy
 fi
 
-# run `check_quota` in a subshell
+# run `check_quota` in a sub-shell
 ( check_quota.sh; )
 
 # technically I can just use -e... but posix portability :(
 eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
-}
