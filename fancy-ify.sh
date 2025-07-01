@@ -26,8 +26,10 @@
 ## SOFTWARE.
 
 
-# if $TERM not set, bypass this enitirely
-[ -n "$TERM" ] || return 0
+# if it's just x2go logging in and an X session has not launch, bypass this enitirely
+if [ -n "$DISPLAY" ] && [ -z "$X2GO_SESSION" ]; then
+ return 0
+fi
 
 LOGO="$(cat <<EOF
 █     █▝▀▀▀▀▙▐▌    ▐▌
@@ -88,7 +90,6 @@ make_ps1_fancy(){
 }
 
 
-# Bells and whistles, comment out if server slows down
 if [ "$LANG" != "C" ]; then
     # to remove formatting, comment this line out
     make_ps1_fancy
@@ -99,3 +100,6 @@ fi
 
 # technically I can just use -e... but posix portability :(
 eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
+
+# clean up
+unset make_ps1_fancy random_greeting
