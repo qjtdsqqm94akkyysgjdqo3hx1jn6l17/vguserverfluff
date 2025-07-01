@@ -27,8 +27,8 @@
 
 
 # if it's just x2go logging in and an X session has not launch, bypass this enitirely
-if [ -n "$DISPLAY" ] && [ -z "$X2GO_SESSION" ]; then
- return 0
+if [ -z "$DISPLAY" ]; then
+ [ -n "$X2GO_SESSION" ] && return 0
 fi
 
 LOGO="$(cat <<EOF
