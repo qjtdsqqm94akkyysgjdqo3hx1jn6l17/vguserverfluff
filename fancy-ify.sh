@@ -98,8 +98,17 @@ fi
 # run `check_quota` in a sub-shell
 ( check_quota.sh; )
 
-# technically I can just use -e... but posix portability :(
-eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
+if [ -s "/etc/motd" ]; then
+    echo "   === Message of the Day ==="
+
+    # modified from an example by Gemini
+    # replace the text escape sequence by its hex equivalent
+    sed -E 's/(\\e|\\033)/\x1b/g' "/etc/motd" | cat
+    echo "   === Message of the Day ==="
+else
+    # technically I can just use -e... but posix portability :(
+    eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
+fi
 
 # clean up
 unset make_ps1_fancy random_greeting
