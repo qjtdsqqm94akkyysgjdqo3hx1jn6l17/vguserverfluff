@@ -96,7 +96,7 @@ if [ "$LANG" != "C" ]; then
 fi
 
 # run `check_quota` in a sub-shell
-( check_quota.sh; )
+( check_quota.sh; ) 2>&1 # I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go
 
 if [ -s "/etc/motd" ]; then
     echo "   === Message of the Day ==="
