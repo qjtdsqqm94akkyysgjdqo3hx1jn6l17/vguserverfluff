@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Orinially made by udo.klein@vgu.edu.vn
+set -eu -o pipefall
 
 emaillst="User_Emails.txt"
 if [ ! -f $emaillst ]; then
