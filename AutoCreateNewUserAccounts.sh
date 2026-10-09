@@ -7,8 +7,8 @@ set -eu -o pipefail
 
 : "${CONF_FILE:=${0%.sh}.conf}"
 
-if [ -e ${CONF_FILE} ]; then
-	. "${CONF_FILE}"
+if [ -e "${CONF_FILE}" ]; then
+	. ./"${CONF_FILE}"
 else
 	echo "Notice: Cannot found configuration file '${CONF_FILE}', using default values."
 fi
@@ -28,8 +28,8 @@ logfile="AutoCreateUser.log"
 date >>$logfile
 for email in $(<$emaillst); do
 	echo --- >>$logfile
-	username=$(echo $email | cut -d@ -f1)
-	if [[ x$username = "x" ]]; then
+	username=$(echo "$email" | cut -d@ -f1)
+	if [[ -z "$username" ]]; then
 		echo "Empty line skipped" >>$logfile
 		continue
 	fi
@@ -40,7 +40,7 @@ for email in $(<$emaillst); do
 	if [[ ${username:0:1} == [0-9] ]]; then
 		username="vgustd."$username;
 	fi
-	if id -u $username >/dev/null 2>&1; then
+	if id -u "$username" >/dev/null 2>&1; then
 		echo "User $username already exists" >>$logfile
 		continue
 	fi
@@ -48,9 +48,9 @@ for email in $(<$emaillst); do
 	pw=$(head /dev/urandom | tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c 12)
 	sudo useradd -g "$group" -s "$shell" -d "$homedir" -m "$username"
 	echo "$username:$pw" | sudo chpasswd
-	sudo chage -d 0 $username
+	sudo chage -d 0 "$username"
 	# make detect mountpoint for the home directory
-	if grep '/home' /proc/mounts 2>&1 >/dev/null; then
+	if grep '/home' /proc/mounts >/dev/null 2>&1; then
 		home_mount="/home"
 	else
 		home_mount="/"
@@ -59,13 +59,14 @@ for email in $(<$emaillst); do
 		sudo xfs_quota -x -c "limit ${QUOTA_LIMIT_STRING- bsoft=23g bhard=25g} $username" "$home_mount"
 		sudo xfs_quota -x -c "report -bih" / | grep "$username" >>$logfile
 	 fi
+	# bit of a hack, but it should work. only add that line when APPLY_QUOTA is not empty (maybe...)
 	cat >>$logfile <<EOL
 User account $username:$group created.
 Password: $pw
 Home directory: $homedir
 Shell: $shell${APPLY_QUOTA+
 Quota set for $username.}
-EOL # bit of a hack, but it should work. only add that line when APPLY_QUOTA is not empty (maybe...)
+EOL
 	: "${HOSTNAME=$(hostname)}"
 
 	short_hostname="${HOSTNAME#EEIT-}"
@@ -75,7 +76,7 @@ EOL # bit of a hack, but it should work. only add that line when APPLY_QUOTA is 
 
 	echo "Account setup complete. Sending email to ${email}..." >>$logfile
 	# TODO find a diffrent flay that allows to set the name without place_holder@vgu.edu.vn
- 	mail -s "user account on VGU $short_hostname server" -b "${BCC_LIST-son.nt@vgu.edu.vn}" -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" $email >/dev/null 2>&1 <<EOF
+	mail -s "user account on VGU $short_hostname server" -b "${BCC_LIST-son.nt@vgu.edu.vn}" -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" "$email" >/dev/null 2>&1 <<EOF
 This email is automatically generated.
 
 A user account has been created for you on VGU's server for the $short_hostname EDA tools. The $short_hostname server is a Linux machine running ${PRETTY_NAME-AlmaLinux (I think...)}. You can use Secure Shell (ssh) to connect to the server from the internal VGU network. If you are outside VGU, you first need to connect to the VGU VPN (contact your supervisor if you haven't heard anything about this, they should be able to get you an account).
