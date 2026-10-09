@@ -31,7 +31,7 @@ to_human_size(){
     if which numfmt 1>/dev/null 2>/dev/null; then
         numfmt --to=iec-i --suffix='B' --from-unit=1024 "$1"
     else # just make it to MiB and call it a day I don't care
-        echo "$(expr $1 / 1024)MiB" # 1048576 == 1024 ** 2
+        echo "$(($1 / 1024))MiB" # 1048576 == 1024 ** 2
    fi
 }
 
@@ -46,9 +46,12 @@ if [ -n "$*" ]; then
         echo "you have no disk quota. lucky you..."
         echo ''
     else
+        SHOW_TIP='yes'
+        extra_message=''
         Q_PERCENT="$(echo "$Q_USED*100/$Q_LIMIT"|bc)"
         if [ "$Q_PERCENT" -lt "60"  ]; then
             _f_pfx='\033[1m\033[32m'
+            SHOW_TIP=''
         elif [ "$Q_PERCENT" -lt "90"  ]; then
        	    _f_pfx='\033[1m\033[33m'
             extra_message="You might wanna start looking into deleting stuff you don't need."
@@ -61,9 +64,14 @@ if [ -n "$*" ]; then
             extra_message="I am no longer asking. You have a grace up to $_date_fstring. Delete. Now."
         fi
 
-        printf "You have used $_f_pfx%s\033[0m ($_f_pfx%s%%\033[0m) of your \033[1m%s\033[0m disk quota.\n\033[2m$_f_pfx\033[25m%s\033[0m\n"\
+        printf "You have used $_f_pfx%s\033[0m ($_f_pfx%s%%\033[0m) of your \033[1m%s\033[0m disk quota.\n\033[2m$_f_pfx\033[25m%s\033[0m\n" \
             "$(to_human_size "$Q_USED")" "$(echo "$Q_USED*100/$Q_LIMIT"|bc)"\
             "$(to_human_size "$Q_LIMIT")" "$extra_message"
+        if [ "$SHOW_TIP" ]; then
+            printf '\033[2m%s\n\n\t%s\033[0m\n\n' \
+                "TIP: To look for files over, say, 300Mb on your current directory you can run:" \
+                "find . -type f -size +300M -exec du -h '{}' +"
+        fi
     fi
 else
     echo "$0: Could not get quota information for current user." >&2
