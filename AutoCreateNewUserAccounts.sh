@@ -57,7 +57,7 @@ for email in $(<$emaillst); do
 	fi
 	if [ "${APPLY_QUOTA=yes}" ]; then
 		sudo xfs_quota -x -c "limit ${QUOTA_LIMIT_STRING- bsoft=23g bhard=25g} $username" "$home_mount"
-		sudo xfs_quota -x -c "report -bih" / | grep "$username" >>$logfile
+		sudo xfs_quota -x -c "report -bih" "$home_mount" | grep "$username" >>$logfile
 	 fi
 	# bit of a hack, but it should work. only add that line when APPLY_QUOTA is not empty (maybe...)
 	cat >>$logfile <<EOL
