@@ -1,15 +1,25 @@
 #!/bin/bash
 #
 # Orinially made by udo.klein@vgu.edu.vn
-set -eu -o pipefall
+
+# Fail upon an error, unset variable or error in pipe
+set -eu -o pipefail
+
+: "${CONF_FILE:=${0%.sh}.conf}"
+
+if [ -e ${CONF_FILE} ]; then
+	. "${CONF_FILE}"
+else
+	echo "Notice: Cannot found configuration file '${CONF_FILE}', using default values."
+fi
 
 emaillst="User_Emails.txt"
 if [ ! -f $emaillst ]; then
-    echo "Input file $emaillst not found!"
-    exit 0
+	echo "Input file $emaillst not found!"
+	exit 0
 fi
 echo
-ipno=$(ifconfig ens160 | grep 'inet' | \
+ipno=$(ifconfig "${NET_DEVICE-ens160}" | grep 'inet' | \
 	grep -E -o "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)" | \
 	head -n 1 | awk '{print $1}')
 group="icd"
@@ -36,7 +46,7 @@ for email in $(<$emaillst); do
 	fi
 	homedir="/home/$username"
 	pw=$(head /dev/urandom | tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c 12)
-	sudo useradd -g $group -s $shell -d $homedir -m $username
+	sudo useradd -g "$group" -s "$shell" -d "$homedir" -m "$username"
 	echo "$username:$pw" | sudo chpasswd
 	sudo chage -d 0 $username
 	# make detect mountpoint for the home directory
@@ -45,19 +55,27 @@ for email in $(<$emaillst); do
 	else
 		home_mount="/"
 	fi
-	sudo xfs_quota -x -c "limit bsoft=23g bhard=25g $username" "$home_mount"
-    cat >>$logfile <<EOL
+	if [ "${APPLY_QUOTA=yes}" ]; then
+		sudo xfs_quota -x -c "limit ${QUOTA_LIMIT_STRING- bsoft=23g bhard=25g} $username" "$home_mount"
+		sudo xfs_quota -x -c "report -bih" / | grep "$username" >>$logfile
+	 fi
+	cat >>$logfile <<EOL
 User account $username:$group created.
 Password: $pw
 Home directory: $homedir
-Shell: $shell
-Quota set for $username.
-EOL
+Shell: $shell${APPLY_QUOTA+
+Quota set for $username.}
+EOL # bit of a hack, but it should work. only add that line when APPLY_QUOTA is not empty (maybe...)
 	: "${HOSTNAME=$(hostname)}"
-	short_hostname="${HOSTNAME##*-}"
-	sudo xfs_quota -x -c "report -bih" / | grep "$username" >>$logfile
-	echo "Account setup complete. Email sent to $email." >>$logfile
- 	mail -s "user account on VGU $short_hostname server" -b udo.klein@vgu.edu.vn -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" $email >/dev/null 2>&1 <<EOF
+
+	short_hostname="${HOSTNAME#EEIT-}"
+	short_hostname="${short_hostname%-SRV}" # maybe there's a better way than this
+	# Is there a better way than to source this? We only need PRETTY_NAME
+	test -e /etc/os-release && . /etc/os-release
+
+	echo "Account setup complete. Sending email to ${email}..." >>$logfile
+	# TODO find a diffrent flay that allows to set the name without place_holder@vgu.edu.vn
+ 	mail -s "user account on VGU $short_hostname server" -b "${BCC_LIST-son.nt@vgu.edu.vn}" -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" $email >/dev/null 2>&1 <<EOF
 This email is automatically generated.
 
 A user account has been created for you on VGU's server for the $short_hostname EDA tools. The $short_hostname server is a Linux machine running ${PRETTY_NAME-AlmaLinux (I think...)}. You can use Secure Shell (ssh) to connect to the server from the internal VGU network. If you are outside VGU, you first need to connect to the VGU VPN (contact your supervisor if you haven't heard anything about this, they should be able to get you an account).
@@ -67,7 +85,7 @@ Your user name is: $username
 Note: For VGU student email addresses, the user name is vgustd."Student_ID"; and your VGU email name (without "@vgu.edu.vn") for non-students
 Your initial password is: $pw
 
-Uppon you first initial successfull login with the above credentials, you will be asked to set a new password for the account. Please do so by following the prompt on yout termial/X2Go:, but usually the steps as as follow:
+Uppon you first initial successfull login with the above credentials, you will be asked to set a new password for the account. Please do so by following the prompt on your termial/X2Go:, but usually the steps as as follow:
 	1. type out the initial password, [Enter]
 	2. type your new password, [Enter]
 	3. type your new password again, [Enter]
