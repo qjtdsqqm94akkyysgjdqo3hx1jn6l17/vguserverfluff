@@ -5,6 +5,10 @@
 # Fail upon an error, unset variable or error in pipe
 set -eu -o pipefail
 
+# In case of silence error
+trap 'echo "$0: exit code $? caught on line $LINENO" >&2' ERR
+trap 'printf "\n[ script exited with code %d ]\n" "$?"' EXIT
+
 : "${CONF_FILE:=${0%.sh}.conf}"
 
 if [ -e "${CONF_FILE}" ]; then
@@ -16,7 +20,7 @@ fi
 emaillst="User_Emails.txt"
 if [ ! -f $emaillst ]; then
 	echo "Input file $emaillst not found!"
-	exit 0
+	exit 1
 fi
 echo
 ipno=$(ifconfig "${NET_DEVICE-ens160}" | grep 'inet' | \
@@ -55,18 +59,17 @@ for email in $(<$emaillst); do
 	else
 		home_mount="/"
 	fi
-	if [ "${APPLY_QUOTA=yes}" ]; then
-		sudo xfs_quota -x -c "limit ${QUOTA_LIMIT_STRING- bsoft=23g bhard=25g} $username" "$home_mount"
-		sudo xfs_quota -x -c "report -bih" "$home_mount" | grep "$username" >>$logfile
-	 fi
-	# bit of a hack, but it should work. only add that line when APPLY_QUOTA is not empty (maybe...)
 	cat >>$logfile <<EOL
 User account $username:$group created.
 Password: $pw
 Home directory: $homedir
-Shell: $shell${APPLY_QUOTA+
-Quota set for $username.}
+Shell: $shell
 EOL
+	if [ "${APPLY_QUOTA=yes}" ]; then
+		sudo xfs_quota -x -c "limit ${QUOTA_LIMIT_STRING- bsoft=23g bhard=25g} $username" "$home_mount"
+		sudo xfs_quota -x -c "report -bih" "$home_mount" | grep "$username" >>$logfile
+		echo Quota set for $username.  >>$logfile
+	 fi
 	: "${HOSTNAME=$(hostname)}"
 
 	short_hostname="${HOSTNAME#EEIT-}"
