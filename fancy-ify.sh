@@ -30,41 +30,50 @@
 if [ -z "$DISPLAY" ]; then
  [ -n "$X2GO_SESSION" ] && return 0
 fi
+# run all this fancy printing in a sub-shell
+(
+    : "${HOSTNAME=$(hostname)}"
+    : "${USER=$(whoami)}"
 
-LOGO="$(cat <<EOF
+    # LOGO="
+    # █     █▝▀▀▀▀▙▐▌    ▐▌
+    # █     █      ▐▌    ▐▌
+    # ▜▄   ▄▚   ▀▀█▐▌    ▐▌
+    #  ▝▜▄▛▘▜▄▄▄▄▄▛▝▙▄▄▄▄▟▘
+    # "
+
+    HBAR="───────────────────────"
+
+
+
+    # when connecting via x2g, tput'd implode and somehow take the x2g session with it :(
+    # so no `tput cols` for now (until I find a way to safely $TERM to appease it) :((
+    # UPDATE: for whatever reason $TERM was not transferred over to the sub shells, causing errors
+    if [ "$LANG" != "C" ] && [ "${COLUMNS:-"$(TERM="$TERM" tput cols)"}" -gt 28 ]; then
+        echo "╭$HBAR╮"
+        # IFS=, printf '│ \033[38;5;208m%s\033[0m │\n' $LOGO
+        while IFS='' read -r line; do
+            printf '│ \033[38;5;208m%b\033[0m │\n' "$line"
+        done <<LOGO
 █     █▝▀▀▀▀▙▐▌    ▐▌
 █     █      ▐▌    ▐▌
 ▜▄   ▄▚   ▀▀█▐▌    ▐▌
  ▝▜▄▛▘▜▄▄▄▄▄▛▝▙▄▄▄▄▟▘
-EOF
-)"
+LOGO
 
-HBAR="$(cat <<EOF
-───────────────────────
-EOF
-)"
+        printf '│ \033[1m%21s\033[0m │\n│ \033[1m%21s\033[0m │\n'\
+            "Vietnamese-German" "University"
+        echo "╰$HBAR╯"
+    else
+        printf '%s\n  \033[1m\033[38;5;208m%s\033[0m\n%s\n'\
+            "=======" "VGU" "======="
+    fi
+    printf '\033[2m(something broke? come yell at \033[4meda.helpdesk@vgu.edu.vn\033[24m)\033[0m\n'
 
-# when connecting via x2g, tput'd implode and somehow take the x2g session with it :(
-# so no `tput cols` for now (until I find a way to safely $TERM to appease it) :((
-# UPDATE: for whatever reason $TERM was not transferred over to the sub shells, causing errors
-if [ "LANG" != "C" ] && [ "${COLUMNS:-"$(TERM="$TERM" tput cols)"}" -gt 28 ]; then
-    echo "╭$HBAR╮"
-    echo "$LOGO" | while IFS='' read -r line; do
-        printf '│ \033[38;5;208m%s\033[0m │\n' "$line"
-    done
-    printf '│ \033[1m%21s\033[0m │\n│ \033[1m%21s\033[0m │\n'\
-        "Vietnamese-German" "University"
-    echo "╰$HBAR╯"
-else
-    printf '%s\n  \033[1m\033[38;5;208m%s\033[0m\n%s\n'\
-        "=======" "VGU" "======="
-fi
-printf '\033[2m(something broke? come yell at \033[4meda.helpdesk@vgu.edu.vn\033[24m)\033[0m\n'
+    printf '\nYou have connected to: \033[4m%s\033[0m\n\n' "$HOSTNAME"
 
-printf '\nYou have connected to: \033[4m%s\033[0m\n\n' "$HOSTNAME"
-
-random_greeting(){
-    shuf -n 1 <<'EOF'
+    random_greeting(){
+        shuf -n 1 <<'EOF'
 Gutten Tag, $USER!
 Welcome, $USER.
 $USER has logged in.
@@ -79,36 +88,37 @@ Is today Friday?
 Take it easy, $USER.
 oh hi
 EOF
-}
+    }
 
-make_ps1_fancy(){
-    # modified from https://www.cyberciti.biz/tips/howto-linux-unix-bash-shell-setup-prompt.html
-    # normal
-    # 🗁 (folder unicode char) might cause issues, remove if broken
-    # PS1='[\[\033[1m\]\u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\]]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
-    PS1='[\[\033[1m\] \u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\] ]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
-}
+    # make_ps1_fancy(){
+    #     # modified from https://www.cyberciti.biz/tips/howto-linux-unix-bash-shell-setup-prompt.html
+    #     # normal
+    #     # 🗁 (folder unicode char) might cause issues, remove if broken
+    #     # PS1='[\[\033[1m\]\u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\]]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
+    #     PS1='[\[\033[1m\] \u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\] ]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
+    # }
 
 
-if [ "$LANG" != "C" ]; then
+
+    which check_quota.sh 2>/dev/null >/dev/null && check_quota.sh 2>&1 # I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go
+
+    if [ -s "/etc/motd" ]; then
+        echo "   === Message of the Day ==="
+
+        # modified from an example by Gemini
+        # replace the text escape sequence by its hex equivalent
+        sed -E 's/(\\e|\\033)/\x1b/g' "/etc/motd"
+        echo "   === Message of the Day ==="
+    else
+        # technically I can just use -e... but posix portability :(
+        eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
+    fi
+)
+
+if [ "$LANG" != "C" ] && [ "$PS1" ]; then
     # to remove formatting, comment this line out
-    make_ps1_fancy
-fi
-
-# run `check_quota` in a sub-shell
-( check_quota.sh; ) 2>&1 # I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go I hate x2go
-
-if [ -s "/etc/motd" ]; then
-    echo "   === Message of the Day ==="
-
-    # modified from an example by Gemini
-    # replace the text escape sequence by its hex equivalent
-    sed -E 's/(\\e|\\033)/\x1b/g' "/etc/motd" | cat
-    echo "   === Message of the Day ==="
-else
-    # technically I can just use -e... but posix portability :(
-    eval echo '"«'"$(TERM="$TERM" random_greeting)"'»"'
+    PS1='[\[\033[1m\] \u\[\033[38;5;208m\]@\[\033[39m\]\h \[\033[2m\033[4m\]\W\[\033[0m\] ]\[\033[38;5;208m\033[1m\]\$\[\033[0m\] '
 fi
 
 # clean up
-unset make_ps1_fancy random_greeting
+# unset make_ps1_fancy random_greeting HBAR
