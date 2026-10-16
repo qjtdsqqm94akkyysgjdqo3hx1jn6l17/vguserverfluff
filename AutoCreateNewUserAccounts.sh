@@ -79,7 +79,7 @@ EOL
 
 	echo "Account setup complete. Sending email to ${email}..." >>$logfile
 	# TODO find a diffrent flay that allows to set the name without place_holder@vgu.edu.vn
-	mail -s "user account on VGU $short_hostname server" -b "${BCC_LIST-son.nt@vgu.edu.vn}" -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" "$email" >/dev/null 2>&1 <<EOF
+	mail -s "user account on VGU $short_hostname server" -b "${BCC_LIST-son.nt@vgu.edu.vn}" -r "$HOSTNAME Automatic Email <place_holder@vgu.edu.vn>" "$email" >/dev/null <<EOF
 This email is automatically generated.
 
 A user account has been created for you on VGU's server for the $short_hostname EDA tools. The $short_hostname server is a Linux machine running ${PRETTY_NAME-AlmaLinux (most likely)}. You can use Secure Shell (ssh) to connect to the server from the internal VGU network. If you are outside VGU, you first need to connect to the VGU VPN (contact your supervisor if you haven't heard anything about this, they should be able to get you an account).
@@ -107,6 +107,8 @@ Some tools run as a command in a terminal shell, others need a GUI, but most too
 For any questions and/or comments, you may reply to this email.
 EOF
 	echo "User $username created. Email sent to $email."
+
+	sleep 1
 done
 echo +++ >>$logfile
 exit 0
