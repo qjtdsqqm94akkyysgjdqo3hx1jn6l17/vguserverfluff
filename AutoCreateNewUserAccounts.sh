@@ -30,6 +30,8 @@ group="icd"
 shell="/bin/bash"
 logfile="AutoCreateUser.log"
 date >>$logfile
+stat_create=0 stat_skip=0 stat_exists=0
+
 for email in $(<$emaillst); do
 	echo --- >>$logfile
 	username=$(echo "$email" | cut -d@ -f1)
@@ -39,6 +41,7 @@ for email in $(<$emaillst); do
 	fi
 	if [[ ${username:0:1} = "*" ]]; then
 		echo "User $username skipped" >>$logfile
+		: "$((stat_skip++))" # TODO: look for better looking, POSIX compatible syntax
 		continue
 	fi
 	if [[ ${username:0:1} == [0-9] ]]; then
@@ -46,6 +49,7 @@ for email in $(<$emaillst); do
 	fi
 	if id -u "$username" >/dev/null 2>&1; then
 		echo "User $username already exists" >>$logfile
+		: "$((stat_exists++))" # TODO: look for better looking, POSIX compatible syntax
 		continue
 	fi
 	homedir="/home/$username"
@@ -107,8 +111,11 @@ Some tools run as a command in a terminal shell, others need a GUI, but most too
 For any questions and/or comments, you may reply to this email.
 EOF
 	echo "User $username created. Email sent to $email."
+	: "$((stat_create++))" # TODO: look for better looking, POSIX compatible syntax
 
 	sleep 1
 done
 echo +++ >>$logfile
+
+echo "Created ${stat_create} user(s), ${stat_exists} laready exists, skipped ${stat_skip}."
 exit 0
